@@ -3,7 +3,7 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 from .models import Device
 from users.models import UserProfile
-from access_logs.models import AccessLog
+from access_logs.models import AccessLog  
 
 @csrf_exempt
 def verify_fingerprint(request):

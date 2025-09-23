@@ -131,5 +131,6 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
+
 LOGIN_URL = '/login/'
-LOGIN_REDIRECT_URL = '/logs/dashboard/'
+LOGIN_REDIRECT_URL = '/access_logs/dashboard/'
