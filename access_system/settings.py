@@ -57,7 +57,7 @@ ROOT_URLCONF = 'access_system.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -133,4 +133,6 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 
 LOGIN_URL = '/login/'
+LOGIN_REDIRECT_URL = '/access_logs/dashboard/'
+
 LOGIN_REDIRECT_URL = '/access_logs/dashboard/'

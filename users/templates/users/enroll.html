@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-lg">
+    <h1 class="text-3xl font-bold mb-6 text-center text-blue-700">Enroll New User</h1>
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+
+        <!-- Username & Email -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Username *</label>
+                <input type="text" name="username" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500" required>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <input type="email" name="email" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+            </div>
+        </div>
+
+        <!-- Biometric Inputs -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Fingerprint ID (optional)</label>
+                <input type="text" name="fingerprint_id" placeholder="e.g., FP_001" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500">
+                <p class="text-xs text-gray-500 mt-1">Leave blank if not using fingerprint</p>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Voice Phrase (optional)</label>
+                <input type="text" name="voice_phrase" placeholder='e.g., "Open Sesame"' class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500">
+                <p class="text-xs text-gray-500 mt-1">User says this to unlock</p>
+            </div>
+        </div>
+
+        <!-- Role -->
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
+            <select name="role" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+            </select>
+        </div>
+
+        <!-- Submit -->
+        <div class="text-center">
+            <button type="submit" class="bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-3 px-8 rounded-full hover:shadow-lg transform hover:scale-105 transition duration-200">
+                Enroll User
+            </button>
+        </div>
+    </form>
+
+    <!-- Instructions -->
+    <div class="mt-8 p-4 bg-blue-50 rounded-lg text-sm text-blue-800">
+        <p><strong>Tip:</strong> Users can use <strong>fingerprint</strong>, <strong>voice</strong>, or <strong>both</strong> to unlock.</p>
+    </div>
+</div>
+{% endblock %}

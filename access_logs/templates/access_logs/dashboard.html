@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="space-y-6">
+    <h1 class="text-2xl font-bold">Access Dashboard</h1>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h2 class="text-lg font-semibold">Today's Entries</h2>
+            <p class="text-4xl font-bold text-blue-600">{{ total_today }}</p>
+        </div>
+        <div class="bg-red-100 p-6 rounded-lg shadow">
+            <h2 class="text-lg font-semibold">Failed Attempts</h2>
+            <p class="text-4xl font-bold text-red-600">{{ failed }}</p>
+        </div>
+    </div>
+    <h2 class="text-xl font-bold mt-6">Last 5 Events</h2>
+    <div class="bg-white p-6 rounded-lg shadow">
+        <table class="w-full border-collapse">
+            <thead>
+                <tr class="bg-gray-200">
+                    <th class="border p-2">Method</th>
+                    <th class="border p-2">Result</th>
+                    <th class="border p-2">Time</th>
+                    <th class="border p-2">Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in recent_logs %}
+                <tr>
+                    <td class="border p-2">{{ log.method }}</td>
+                    <td class="border p-2">{{ log.result }}</td>
+                    <td class="border p-2">{{ log.timestamp }}</td>
+                    <td class="border p-2">{{ log.notes }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="border p-2 text-center">No logs found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="bg-white p-6 rounded-lg shadow">
+    <h1 class="text-2xl font-bold mb-4">Devices</h1>
+    <table class="w-full border-collapse">
+        <thead>
+            <tr class="bg-gray-200">
+                <th class="border p-2">Name</th>
+                <th class="border p-2">Device ID</th>
+                <th class="border p-2">IP Address</th>
+                <th class="border p-2">Status</th>
+                <th class="border p-2">Last Seen</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for device in devices %}
+            <tr>
+                <td class="border p-2">{{ device.name }}</td>
+                <td class="border p-2">{{ device.device_id }}</td>
+                <td class="border p-2">{{ device.ip_address|default:"N/A" }}</td>
+                <td class="border p-2">{{ device.is_active|yesno:"Active,Inactive" }}</td>
+                <td class="border p-2">{{ device.last_seen }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="border p-2 text-center">No devices found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
