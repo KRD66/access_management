@@ -2,6 +2,8 @@
 {% block content %}
 <div class="space-y-6">
     <h1 class="text-2xl font-bold">Access Dashboard</h1>
+
+    <!-- Stats -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="bg-white p-6 rounded-lg shadow">
             <h2 class="text-lg font-semibold">Today's Entries</h2>
@@ -12,32 +14,127 @@
             <p class="text-4xl font-bold text-red-600">{{ failed }}</p>
         </div>
     </div>
+
+    <!-- Voice Control -->
+    <div class="mt-8 p-6 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg shadow-lg">
+        <h3 class="text-lg font-semibold mb-4 text-purple-800">Voice Access Control</h3>
+        <div class="flex items-center gap-4">
+            <button 
+                id="voiceBtn" 
+                class="bg-purple-600 text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-purple-700 shadow-lg transform hover:scale-105 transition duration-200 flex items-center gap-3"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                </svg>
+                Say "Open Sesame"
+            </button>
+            <span id="status" class="text-purple-700 font-medium">Click and speak...</span>
+        </div>
+    </div>
+
+    <!-- Recent logs -->
     <h2 class="text-xl font-bold mt-6">Last 5 Events</h2>
-    <div class="bg-white p-6 rounded-lg shadow">
+    <div class="bg-white p-6 rounded-lg shadow overflow-x-auto">
         <table class="w-full border-collapse">
-        <th class="border p-2">User</th>  
             <thead>
-                <th class="border p-2">User</th>  
                 <tr class="bg-gray-200">
-                    <th class="border p-2">Method</th>
-                    <th class="border p-2">Result</th>
-                    <th class="border p-2">Time</th>
-                    <th class="border p-2">Notes</th>
+                    <th class="border p-2 text-left">User</th>
+                    <th class="border p-2 text-left">Method</th>
+                    <th class="border p-2 text-left">Result</th>
+                    <th class="border p-2 text-left">Time</th>
+                    <th class="border p-2 text-left">Notes</th>
                 </tr>
             </thead>
             <tbody>
                 {% for log in recent_logs %}
-                <tr>
-                    <td class="border p-2">{{ log.method }}</td>
-                    <td class="border p-2">{{ log.result }}</td>
-                    <td class="border p-2">{{ log.timestamp }}</td>
+                <tr class="{% if log.result == 'failure' %}bg-red-50{% else %}bg-green-50{% endif %}">
+                    <td class="border p-2">
+                        {% if log.user_profile %}
+                            <span class="font-medium">{{ log.user_profile.user.username }}</span>
+                            {% if log.method == 'voice' %}
+                                <span class="ml-1 text-xs text-purple-600">[Voice]</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="text-gray-400 italic">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="border p-2">
+                        {% if log.method == 'voice' %}
+                            <span class="text-purple-600 font-medium">Voice</span>
+                        {% else %}
+                            {{ log.method }}
+                        {% endif %}
+                    </td>
+                    <td class="border p-2">
+                        {% if log.result == 'success' %}
+                            <span class="text-green-600 font-medium">Success</span>
+                        {% else %}
+                            <span class="text-red-600 font-medium">Failed</span>
+                        {% endif %}
+                    </td>
+                    <td class="border p-2">{{ log.timestamp|date:"M d, H:i" }}</td>
                     <td class="border p-2">{{ log.notes }}</td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="4" class="border p-2 text-center">No logs found.</td></tr>
+                <tr>
+                    <td colspan="5" class="border p-2 text-center text-gray-500">No logs found.</td>
+                </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 </div>
+
+<!-- JavaScript for Voice Recognition -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const button = document.getElementById('voiceBtn');
+    const status = document.getElementById('status');
+    
+    if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
+        status.textContent = 'Browser does not support speech recognition.';
+        button.disabled = true;
+        return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+
+    button.addEventListener('click', () => {
+        button.disabled = true;
+        status.textContent = 'Listening...';
+        recognition.start();
+    });
+
+    recognition.onresult = function(event) {
+        const phrase = event.results[0][0].transcript.trim().toLowerCase();
+        status.textContent = `Heard: "${phrase}"`;
+
+        // Send to Django
+        fetch("{% url 'test_voice' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: 'voice_phrase=' + encodeURIComponent(phrase)
+        })
+        .then(() => {
+            setTimeout(() => location.reload(), 1000);
+        });
+    };
+
+    recognition.onerror = function() {
+        status.textContent = 'Error. Try again.';
+        button.disabled = false;
+    };
+
+    recognition.onend = function() {
+        button.disabled = false;
+    };
+});
+</script>
 {% endblock %}
