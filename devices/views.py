@@ -40,3 +40,6 @@ def verify_fingerprint(request):
 def device_list(request):
     devices = Device.objects.all()
     return render(request, 'devices/device_list.html', {'devices': devices})
+
+
+
