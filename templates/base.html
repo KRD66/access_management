@@ -24,6 +24,14 @@
                     {% if user.is_authenticated %}
                         <a href="{% url 'dashboard' %}" class="text-gray-700 hover:text-blue-600 font-medium">Dashboard</a>
                         <a href="{% url 'user_list' %}" class="text-gray-700 hover:text-blue-600 font-medium">Users</a>
+                        
+                        <!-- Enroll User Button (Admin Only) -->
+                        {% if user.is_staff %}
+                            <a href="{% url 'enroll_user' %}" class="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-full font-bold hover:shadow-lg transition transform hover:scale-105">
+                                Enroll User
+                            </a>
+                        {% endif %}
+
                         <form method="post" action="{% url 'logout' %}" class="inline">
                             {% csrf_token %}
                             <button type="submit" class="btn-logout">
