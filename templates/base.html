@@ -1,39 +1,65 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Access System</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Access Control System</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .btn-logout {
+            @apply text-red-600 hover:text-red-800 font-medium underline bg-transparent border-0 cursor-pointer transition;
+        }
+    </style>
 </head>
-<body class="bg-gray-100 font-sans">
-    <nav class="bg-white shadow p-4">
-        <div class="container mx-auto flex justify-between items-center">
-            <a href="/" class="text-xl font-bold">Access System</a>
-            <div class="space-x-4">
-                <a href="{% url 'dashboard' %}" class="text-blue-600 hover:underline">Dashboard</a>
-                <a href="{% url 'user_list' %}" class="text-blue-600 hover:underline">Users</a>
-                <a href="{% url 'device_list' %}" class="text-blue-600 hover:underline">Devices</a>
-                <a href="{% url 'enroll_user' %}" class="text-blue-600 hover:underline">Enroll User</a>
-                <a href="/admin/" class="text-blue-600 hover:underline">Admin</a>
-                {% if user.is_authenticated %}
-                    <a href="{% url 'logout' %}" class="text-blue-600 hover:underline">Logout</a>
-                {% else %}
-                    <a href="{% url 'login' %}" class="text-blue-600 hover:underline">Login</a>
-                {% endif %}
+<body class="bg-gray-50 min-h-screen">
+
+    <!-- Navigation -->
+    <nav class="bg-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <h1 class="text-xl font-bold text-blue-700">Access System</h1>
+                </div>
+                <div class="flex items-center space-x-6">
+                    {% if user.is_authenticated %}
+                        <a href="{% url 'dashboard' %}" class="text-gray-700 hover:text-blue-600 font-medium">Dashboard</a>
+                        <a href="{% url 'user_list' %}" class="text-gray-700 hover:text-blue-600 font-medium">Users</a>
+                        <form method="post" action="{% url 'logout' %}" class="inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn-logout">
+                                Logout
+                            </button>
+                        </form>
+                    {% else %}
+                        <a href="{% url 'login' %}" class="text-blue-600 hover:underline font-medium">Login</a>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </nav>
-    <div class="container mx-auto mt-6">
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {% if messages %}
-            {% for message in messages %}
-                <div class="bg-{{ message.tags }}-100 border-l-4 border-{{ message.tags }}-500 text-{{ message.tags }}-700 p-4 mb-4 rounded-md">
-                    {{ message }}
-                </div>
-            {% endfor %}
+            <div class="mb-6 space-y-2">
+                {% for message in messages %}
+                    <div class="p-4 rounded-lg {% if message.tags == 'error' %}bg-red-50 border border-red-200 text-red-700{% else %}bg-green-50 border border-green-200 text-green-700{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
         {% endif %}
+
         {% block content %}
         {% endblock %}
-    </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t mt-12 py-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-gray-600">
+            <p>© 2025 Access Control System. All rights reserved.</p>
+        </div>
+    </footer>
+
 </body>
 </html>
