@@ -8,8 +8,14 @@ class UserProfile(models.Model):
     role = models.CharField(max_length=50, choices=[('admin', 'Admin'), ('user', 'User')], default='user')
     created_at = models.DateTimeField(auto_now_add=True)
     voiceprint_file = models.FileField(upload_to='voiceprints/', blank=True, null=True) 
+    
+    #stores voice print locally
+    voiceprint_sample_1 = models.FileField(upload_to='voiceprints/', blank=True, null=True)
+    voiceprint_sample_2 = models.FileField(upload_to='voiceprints/', blank=True, null=True)
+    voiceprint_sample_3 = models.FileField(upload_to='voiceprints/', blank=True, null=True)
 
     def __str__(self):
         return f"{self.user.username} - {self.role}"
+    
     
     
