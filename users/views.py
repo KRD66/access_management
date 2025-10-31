@@ -1,5 +1,5 @@
 # users/views.py
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect ,get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.contrib.auth.models import User
@@ -88,3 +88,17 @@ def enroll_user(request):
 def user_list(request):
     profiles = UserProfile.objects.select_related('user').all().order_by('user__username')
     return render(request, 'users/list.html', {'profiles': profiles})
+
+
+
+@login_required
+@user_passes_test(is_admin, login_url='dashboard')
+def delete_user(request, user_id):
+    if request.method == 'POST':
+        profile = get_object_or_404(UserProfile, user__id=user_id)
+        username = profile.user.username
+        profile.user.delete()  # Deletes User + Profile
+        messages.success(request, f'User {username} deleted successfully.')
+        return redirect('user_list')
+    
+    return redirect('user_list')
