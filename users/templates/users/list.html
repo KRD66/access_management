@@ -1,30 +1,53 @@
+<!-- templates/users/list.html -->
 {% extends 'base.html' %}
 {% block content %}
-<div class="bg-white p-6 rounded-lg shadow">
-    <h1 class="text-2xl font-bold mb-4">Users</h1>
-    <table class="w-full border-collapse">
-        <thead>
-            <tr class="bg-gray-200">
-                <th class="border p-2">Username</th>
-                <th class="border p-2">Email</th>
-                <th class="border p-2">Role</th>
-                <th class="border p-2">Fingerprint ID</th>
-                <th class="border p-2">Created</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for profile in profiles %}
-            <tr>
-                <td class="border p-2">{{ profile.user.username }}</td>
-                <td class="border p-2">{{ profile.user.email }}</td>
-                <td class="border p-2">{{ profile.role }}</td>
-                <td class="border p-2">{{ profile.fingerprint_id|default:"None" }}</td>
-                <td class="border p-2">{{ profile.created_at }}</td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="5" class="border p-2 text-center">No users found.</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<div class="max-w-4xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6 text-blue-700">User List</h1>
+    
+    {% if profiles %}
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <table class="min-w-full">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Username</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for profile in profiles %}
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {{ profile.user.username }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ profile.user.email }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {% if profile.role == 'admin' %}bg-purple-100 text-purple-800{% else %}bg-green-100 text-green-800{% endif %}">
+                            {{ profile.role|capfirst }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        {% if user.is_staff and profile.user != user %}
+                        <form method="post" action="{% url 'delete_user' profile.user.id %}" class="inline">
+                            {% csrf_token %}
+                            <button type="submit" 
+                                    onclick="return confirm('Delete {{ profile.user.username }}? This cannot be undone.')"
+                                    class="text-red-600 hover:text-red-900 font-medium">
+                                Delete
+                            </button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-gray-600">No users enrolled yet.</p>
+    {% endif %}
 </div>
 {% endblock %}
