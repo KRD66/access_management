@@ -8,6 +8,7 @@ class UserProfile(models.Model):
     role = models.CharField(max_length=50, choices=[('admin', 'Admin'), ('user', 'User')], default='user')
     created_at = models.DateTimeField(auto_now_add=True)
     voiceprint_file = models.FileField(upload_to='voiceprints/', blank=True, null=True) 
+    eagle_speaker_id = models.CharField(max_length=100, blank=True, null=True)
     
     #stores voice print locally
     voiceprint_sample_1 = models.FileField(upload_to='voiceprints/', blank=True, null=True)

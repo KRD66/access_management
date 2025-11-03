@@ -69,18 +69,17 @@ def enroll_user(request):
                 except Exception as e:
                     messages.warning(request, f'Voiceprint {i} failed to save: {e}')
 
-        # Send to Picovoice Rhino to create voiceprint
-        voiceprint_id = None
-        if voiceprints_saved == 3 and voice_phrase and settings.PICOVOICE_ACCESS_KEY:
+        # Send to Picovoice Eagle to create speakerId
+        speaker_id = None
+        if voiceprints_saved == 3 and settings.PICOVOICE_ACCESS_KEY:
             try:
                 files = {}
                 for i, path in enumerate(voiceprint_files, 1):
-                    files[f'sample{i}'] = open(path, 'rb')
+                    files[f'audio{i}'] = open(path, 'rb')  # Eagle expects 'audio1', 'audio2', 'audio3'
 
                 response = requests.post(
-                    "https://api.picovoice.ai/rhino/v1/enroll",
+                    "https://api.picovoice.ai/eagle/v1/enroll",
                     headers={'Authorization': f"Bearer {settings.PICOVOICE_ACCESS_KEY}"},
-                    data={'phrase': voice_phrase},
                     files=files
                 )
 
@@ -89,22 +88,24 @@ def enroll_user(request):
 
                 if response.status_code == 200:
                     result = response.json()
-                    voiceprint_id = result.get('voiceprintId')
-                    profile.voiceprint_id = voiceprint_id
+                    speaker_id = result.get('speakerId')
+                    profile.eagle_speaker_id = speaker_id  # ← NEW: Save Eagle speakerId
                     profile.save()
-                    messages.success(request, f'Voiceprint created! ID: {voiceprint_id}')
+                    messages.success(request, f'Eagle voiceprint enrolled! Speaker ID: {speaker_id}')
                 else:
                     error = response.json().get('error', 'Unknown error')
-                    messages.error(request, f'Picovoice error: {error}')
+                    messages.error(request, f'Eagle enrollment error: {error}')
             except Exception as e:
-                messages.error(request, f'Voiceprint upload failed: {e}')
+                messages.error(request, f'Eagle upload failed: {e}')
         elif voiceprints_saved > 0:
-            messages.warning(request, 'Voiceprint saved locally, but not sent to Picovoice (missing key or samples).')
+            messages.warning(request, 'Voice samples saved locally, but not enrolled with Eagle (need 3 samples).')
 
         # Final message
-        msg = f'User {username} enrolled.'
-        if voiceprint_id:
-            msg += ' Voiceprint ready.'
+        msg = f'User {username} enrolled successfully.'
+        if speaker_id:
+            msg += ' Voiceprint ready for verification.'
+        if fingerprint_id:
+            msg += ' Fingerprint set.'
         messages.success(request, msg)
         return redirect('user_list')
 

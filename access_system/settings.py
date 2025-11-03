@@ -141,3 +141,4 @@ LOGIN_REDIRECT_URL = '/access_logs/dashboard/'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+PICOVOICE_ACCESS_KEY = 'YH3SJWIfpRm11wvSpAP7H+k+AnybyizWAkKe18293aYtND4p5VtG8Q=='
