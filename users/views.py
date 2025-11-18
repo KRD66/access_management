@@ -16,7 +16,6 @@ def is_admin(user):
 
 import string
 import random
-
 @login_required
 @user_passes_test(is_admin, login_url='dashboard')
 def enroll_user(request):
@@ -31,47 +30,37 @@ def enroll_user(request):
             messages.error(request, 'Username is required.')
             return redirect('enroll_user')
 
-        # Create user
+        # Create or get user
         user, created = User.objects.get_or_create(username=username)
         user.email = email or f"{username}@access.local"
 
-        if created:
-            if role == 'admin':
-                # Generate strong password for admins
-                temp_pass = ''.join(random.choices(string.ascii_letters + string.digits, k=12))
-                user.set_password(temp_pass)
-                user.is_staff = True
-                user.is_superuser = True
-                messages.success(request, f'ADMIN CREATED → Username: {username} | Password: {temp_pass}')
-            else:
-                # Normal users: no usable password
-                user.set_unusable_password()
-                user.is_staff = False
-                user.is_superuser = False
-                messages.info(request, f'User {username} created → Passwordless (voice/fingerprint only)')
+        # === PASSWORD HANDLING: ONLY FOR ADMINS ===
+        if role == 'admin':
+            pass1 = request.POST.get('admin_password1', '')
+            pass2 = request.POST.get('admin_password2', '')
+            
+            if not pass1 or pass1 != pass2 or len(pass1) < 8:
+                messages.error(request, 'Admin password must be 8+ characters and match.')
+                return redirect('enroll_user')
+            
+            user.set_password(pass1)
+            user.is_staff = True
+            user.is_superuser = True
+            messages.success(request, f'ADMIN CREATED → {username} can now login with password!')
         else:
-            # Updating existing user
-            if role == 'admin':
-                user.is_staff = True
-                user.is_superuser = True
-                if not user.has_usable_password():
-                    temp_pass = ''.join(random.choices(string.ascii_letters + string.digits, k=12))
-                    user.set_password(temp_pass)
-                    messages.success(request, f'Admin upgraded → New password: {temp_pass}')
-            else:
-                user.is_staff = False
-                user.is_superuser = False
+            user.set_unusable_password()
+            user.is_staff = False
+            user.is_superuser = False
 
         user.save()
 
-        # Update profile
+        # Rest of your code (profile, voiceprint, etc.) — unchanged
         profile, _ = UserProfile.objects.get_or_create(user=user)
         profile.fingerprint_id = fingerprint_id
         profile.voice_phrase = voice_phrase
         profile.role = role
         profile.is_active = True
         profile.save()
-
         # === VOICEPRINT ENROLLMENT (unchanged) ===
         voiceprint_files = []
         voiceprints_saved = 0
