@@ -14,6 +14,7 @@ class UserProfile(models.Model):
     voiceprint_sample_1 = models.FileField(upload_to='voiceprints/', blank=True, null=True)
     voiceprint_sample_2 = models.FileField(upload_to='voiceprints/', blank=True, null=True)
     voiceprint_sample_3 = models.FileField(upload_to='voiceprints/', blank=True, null=True)
+    is_active = models.BooleanField(default=True)
 
     def __str__(self):
         return f"{self.user.username} - {self.role}"

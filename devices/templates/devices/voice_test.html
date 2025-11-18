@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="max-w-md mx-auto bg-white p-8 rounded-lg shadow-lg mt-10">
+    <h1 class="text-3xl font-bold mb-6 text-center text-blue-700">Voice Access Test (Web)</h1>
+    <p class="text-center text-gray-600 mb-6">Only your enrolled voice will grant access.</p>
+    
+    <div class="space-y-6">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Your Voice Phrase</label>
+            <input type="text" id="phrase" placeholder='e.g., "let me in alice"' class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500">
+        </div>
+        
+        <div class="text-center">
+            <button id="recordBtn" class="bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold py-4 px-8 rounded-full hover:shadow-lg transform hover:scale-105 transition duration-200">
+                <span class="record-text">Speak Now</span>
+                <span class="recording-text hidden">Recording... (3s)</span>
+            </button>
+        </div>
+        
+        <div id="status" class="text-center text-2xl font-bold mt-6"></div>
+        <div id="details" class="text-center text-sm text-gray-600 mt-2"></div>
+    </div>
+</div>
+
+<script>
+document.getElementById('recordBtn').addEventListener('click', async () => {
+    const phrase = document.getElementById('phrase').value.trim();
+    if (!phrase) {
+        alert('Enter your voice phrase');
+        return;
+    }
+
+    const btn = document.getElementById('recordBtn');
+    const recordText = btn.querySelector('.record-text');
+    const recordingText = btn.querySelector('.recording-text');
+    const status = document.getElementById('status');
+    const details = document.getElementById('details');
+    
+    status.textContent = '';
+    details.textContent = '';
+    recordText.classList.add('hidden');
+    recordingText.classList.remove('hidden');
+    btn.disabled = true;
+
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const recorder = new MediaRecorder(stream);
+        const chunks = [];
+
+        recorder.ondataavailable = e => chunks.push(e.data);
+        recorder.onstop = async () => {
+            const blob = new Blob(chunks, { type: 'audio/webm' });
+            const form = new FormData();
+            form.append('voice_phrase', phrase);
+            form.append('audio', blob, 'voice_test.webm');
+
+            const res = await fetch('/devices/api/verify_voice_web/', {
+                method: 'POST',
+                body: form,
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+            });
+            const data = await res.json();
+
+            status.textContent = data.granted ? 'ACCESS GRANTED!' : 'ACCESS DENIED';
+            status.className = data.granted ? 'text-green-600' : 'text-red-600';
+            details.textContent = data.granted 
+                ? `Welcome, ${data.user}! (Score: ${data.score.toFixed(2)})` 
+                : `Voice not recognized (Score: ${data.score?.toFixed(2) || 'N/A'})`;
+            
+            stream.getTracks().forEach(track => track.stop());
+        };
+
+        recorder.start();
+        setTimeout(() => recorder.stop(), 3000);  // Record 3 seconds
+    } catch (err) {
+        status.textContent = 'Microphone access denied';
+        status.className = 'text-red-600';
+    } finally {
+        recordText.classList.remove('hidden');
+        recordingText.classList.add('hidden');
+        btn.disabled = false;
+    }
+});
+</script>
+{% endblock %}
