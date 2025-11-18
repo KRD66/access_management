@@ -14,6 +14,9 @@ import os
 def is_admin(user):
     return user.is_authenticated and user.is_staff
 
+import string
+import random
+
 @login_required
 @user_passes_test(is_admin, login_url='dashboard')
 def enroll_user(request):
@@ -24,22 +27,42 @@ def enroll_user(request):
         fingerprint_id = request.POST.get('fingerprint_id', '').strip() or None
         voice_phrase = request.POST.get('voice_phrase', '').strip() or None
 
-        # Validate
         if not username:
             messages.error(request, 'Username is required.')
             return redirect('enroll_user')
 
-        # Create or update user
+        # Create user
         user, created = User.objects.get_or_create(username=username)
+        user.email = email or f"{username}@access.local"
+
         if created:
-            user.email = email
-            user.set_password('temp123')
-            user.save()
-            messages.info(request, f'Password set to "temp123" for {username}.')
+            if role == 'admin':
+                # Generate strong password for admins
+                temp_pass = ''.join(random.choices(string.ascii_letters + string.digits, k=12))
+                user.set_password(temp_pass)
+                user.is_staff = True
+                user.is_superuser = True
+                messages.success(request, f'ADMIN CREATED → Username: {username} | Password: {temp_pass}')
+            else:
+                # Normal users: no usable password
+                user.set_unusable_password()
+                user.is_staff = False
+                user.is_superuser = False
+                messages.info(request, f'User {username} created → Passwordless (voice/fingerprint only)')
         else:
-            if user.email != email:
-                user.email = email
-                user.save()
+            # Updating existing user
+            if role == 'admin':
+                user.is_staff = True
+                user.is_superuser = True
+                if not user.has_usable_password():
+                    temp_pass = ''.join(random.choices(string.ascii_letters + string.digits, k=12))
+                    user.set_password(temp_pass)
+                    messages.success(request, f'Admin upgraded → New password: {temp_pass}')
+            else:
+                user.is_staff = False
+                user.is_superuser = False
+
+        user.save()
 
         # Update profile
         profile, _ = UserProfile.objects.get_or_create(user=user)
@@ -49,7 +72,7 @@ def enroll_user(request):
         profile.is_active = True
         profile.save()
 
-        # Save voiceprints locally (3 recordings)
+        # === VOICEPRINT ENROLLMENT (unchanged) ===
         voiceprint_files = []
         voiceprints_saved = 0
         for i in range(1, 4):
@@ -60,57 +83,39 @@ def enroll_user(request):
                     ext = format_part.split('/')[-1]
                     filename = f"voiceprint_{username}_{i}.{ext}"
                     file_content = ContentFile(base64.b64decode(imgstr), name=filename)
-                    
                     field_name = f'voiceprint_sample_{i}'
-                    if hasattr(profile, field_name):
-                        getattr(profile, field_name).save(filename, file_content, save=False)
-                        voiceprint_files.append(getattr(profile, field_name).path)
-                        voiceprints_saved += 1
+                    getattr(profile, field_name).save(filename, file_content, save=False)
+                    voiceprint_files.append(getattr(profile, field_name).path)
+                    voiceprints_saved += 1
                 except Exception as e:
-                    messages.warning(request, f'Voiceprint {i} failed to save: {e}')
+                    messages.warning(request, f'Voiceprint {i} failed: {e}')
 
-        # Send to Picovoice Eagle to create speakerId
-        speaker_id = None
+        # Eagle enrollment
         if voiceprints_saved == 3 and settings.PICOVOICE_ACCESS_KEY:
             try:
-                files = {}
-                for i, path in enumerate(voiceprint_files, 1):
-                    files[f'audio{i}'] = open(path, 'rb')  # Eagle expects 'audio1', 'audio2', 'audio3'
-
+                files = {f'audio{i}': open(path, 'rb') for i, path in enumerate(voiceprint_files, 1)}
                 response = requests.post(
                     "https://api.picovoice.ai/eagle/v1/enroll",
                     headers={'Authorization': f"Bearer {settings.PICOVOICE_ACCESS_KEY}"},
                     files=files
                 )
-
                 for f in files.values():
                     f.close()
 
                 if response.status_code == 200:
-                    result = response.json()
-                    speaker_id = result.get('speakerId')
-                    profile.eagle_speaker_id = speaker_id  # ← NEW: Save Eagle speakerId
+                    speaker_id = response.json().get('speakerId')
+                    profile.eagle_speaker_id = speaker_id
                     profile.save()
-                    messages.success(request, f'Eagle voiceprint enrolled! Speaker ID: {speaker_id}')
+                    messages.success(request, f'Voiceprint enrolled! Speaker ID: {speaker_id}')
                 else:
-                    error = response.json().get('error', 'Unknown error')
-                    messages.error(request, f'Eagle enrollment error: {error}')
+                    messages.error(request, f'Eagle error: {response.text}')
             except Exception as e:
-                messages.error(request, f'Eagle upload failed: {e}')
-        elif voiceprints_saved > 0:
-            messages.warning(request, 'Voice samples saved locally, but not enrolled with Eagle (need 3 samples).')
+                messages.error(request, f'Voice enrollment failed: {e}')
 
-        # Final message
-        msg = f'User {username} enrolled successfully.'
-        if speaker_id:
-            msg += ' Voiceprint ready for verification.'
-        if fingerprint_id:
-            msg += ' Fingerprint set.'
-        messages.success(request, msg)
+        messages.success(request, f'User {username} enrolled successfully!')
         return redirect('user_list')
 
     return render(request, 'users/enroll.html')
-
 @login_required
 def user_list(request):
     profiles = UserProfile.objects.select_related('user').all().order_by('user__username')
