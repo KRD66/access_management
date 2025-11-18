@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: access-system
+    env: python
+    buildCommand: ./render-build.sh
+    startCommand: gunicorn access_system.wsgi:application --bind 0.0.0.0:$PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.6
+      - key: PICOVOICE_ACCESS_KEY
+        sync: false   # ← You’ll set this in dashboard
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: false
