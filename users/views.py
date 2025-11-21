@@ -30,21 +30,21 @@ def voice_login(request):
         voice_data = request.POST.get('voice_data')
 
         if not username or not voice_data:
-            messages.error(request, 'Username and voice required.')
-            return redirect('login')
+            messages.error(request, 'Please enter username and record your voice.')
+            return render(request, 'access_system/templates/registration/login.html') 
 
         try:
             user = User.objects.get(username=username)
             profile = user.userprofile
 
             if not profile.eagle_speaker_id:
-                messages.error(request, 'No voiceprint enrolled.')
-                return redirect('login')
+                messages.error(request, 'No voiceprint enrolled for this user.')
+                return render(request, 'access_system/templates/registration/login.html')
 
             # Save voice temporarily
             format_part, b64data = voice_data.split(';base64,')
             audio_bytes = base64.b64decode(b64data)
-            temp_path = f"/tmp/login_voice_{username}.webm"
+            temp_path = f"/tmp/login_voice_{username}_{request.session.session_key or 'temp'}.webm"
             with open(temp_path, 'wb') as f:
                 f.write(audio_bytes)
 
@@ -55,26 +55,27 @@ def voice_login(request):
                 data={'speakerId': profile.eagle_speaker_id},
                 files={'audio': open(temp_path, 'rb')}
             )
+            os.remove(temp_path)  # clean up
 
             if response.status_code == 200:
                 result = response.json()
-                if result.get('verified', False):
+                if result.get('verified'):
                     login(request, user)
-                    messages.success(request, f"Welcome back, {user.username}!")
-                    return redirect('access_logs:dashboard')
+                    return redirect('access_logs:dashboard')  # or wherever your dashboard is
                 else:
                     messages.error(request, 'Voice not recognized. Try again.')
             else:
-                messages.error(request, 'Voice verification failed.')
-                
+                messages.error(request, 'Voice verification failed. Try again.')
+
         except User.DoesNotExist:
             messages.error(request, 'User not found.')
         except Exception as e:
-            messages.error(request, 'Login error. Try again.')
+            messages.error(request, 'Login error. Please try again.')
 
-        return redirect('login')
+        return render(request, 'login.html')  # ← ALWAYS RENDER, NEVER REDIRECT
 
-    return redirect('login')
+    # GET request → show login page
+    return render(request, 'login.html')
 @login_required
 @user_passes_test(is_admin, login_url='dashboard')
 def enroll_user(request):
