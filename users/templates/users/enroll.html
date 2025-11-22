@@ -1,9 +1,8 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-lg">
+<div class="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-lg mt-10">
     <h1 class="text-3xl font-bold mb-6 text-center text-blue-700">Enroll New User</h1>
 
-    <!-- Admin Check -->
     {% if not user.is_staff %}
         <div class="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg mb-6 text-center">
             <p><strong>Access Denied</strong></p>
@@ -12,126 +11,98 @@
         </div>
     {% else %}
 
+    {% if messages %}
+        <div class="mb-6">
+            {% for message in messages %}
+                <div class="p-4 rounded-lg text-center font-medium {% if message.tags == 'error' %}bg-red-100 text-red-700 border border-red-300{% else %}bg-green-100 text-green-700 border border-green-300{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
     <form method="post" class="space-y-6">
         {% csrf_token %}
 
-        <!-- Username & Email -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Username *</label>
-                <input type="text" name="username" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500" required value="{{ request.POST.username|default:'' }}">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Username *</label>
+                <input type="text" name="username" required class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500" 
+                       value="{{ request.POST.username|default:'' }}" placeholder="e.g. farouq">
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                <input type="email" name="email" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500" value="{{ request.POST.email|default:'' }}">
-            </div>
-        </div>
-
-        <!-- Biometric Inputs -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Fingerprint ID (optional)</label>
-                <input type="text" name="fingerprint_id" placeholder="e.g., FP_001" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500" value="{{ request.POST.fingerprint_id|default:'' }}">
-                <p class="text-xs text-gray-500 mt-1">From ESP32 fingerprint sensor</p>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Voice Phrase (optional)</label>
-                <input type="text" name="voice_phrase" placeholder='e.g., "let me in alice"' class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500" value="{{ request.POST.voice_phrase|default:'' }}">
-                <p class="text-xs text-gray-500 mt-1">Unique phrase for this user</p>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Email (optional)</label>
+                <input type="email" name="email" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500" 
+                       value="{{ request.POST.email|default:'' }}">
             </div>
         </div>
 
-        <!-- Role + Conditional Password -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Fingerprint ID (optional)</label>
+                <input type="text" name="fingerprint_id" placeholder="e.g. FP_001" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Voice Phrase *</label>
+                <input type="text" name="voice_phrase" required placeholder='e.g. "open the door farouq"' class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500">
+                <p class="text-xs text-gray-500 mt-1">This exact phrase will be used for login</p>
+            </div>
+        </div>
+
         <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
-            <select name="role" id="role-select" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
-                <option value="user" {% if request.POST.role != 'admin' %}selected{% endif %}>User (Voice/Fingerprint only)</option>
-                <option value="admin" {% if request.POST.role == 'admin' %}selected{% endif %}>Admin (Username + Password)</option>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Role *</label>
+            <select name="role" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500">
+                <option value="user">Regular User (Voice Only)</option>
+                <option value="admin">Administrator (Voice Only)</option>
             </select>
         </div>
 
-        <!-- ADMIN PASSWORD FIELDS — ONLY SHOW WHEN ADMIN SELECTED -->
-        <div id="admin-password-box" class="space-y-4 p-5 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border-2 border-purple-200 {% if request.POST.role != 'admin' %}hidden{% endif %}">
-            <h3 class="font-bold text-purple-800 text-lg">Set Admin Password</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Password *</label>
-                    <input type="password" name="admin_password1" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500" placeholder="Enter strong password">
+        <!-- VOICEPRINT ENROLLMENT - REQUIRED -->
+        <div class="bg-gradient-to-r from-purple-50 to-blue-50 p-8 rounded-xl border-2 border-purple-300">
+            <h3 class="text-2xl font-bold text-purple-800 mb-4">Voiceprint Enrollment (REQUIRED)</h3>
+            <p class="text-gray-700 mb-6">Record your voice phrase <strong>exactly 3 times</strong> for highest accuracy.</p>
+
+            <div class="space-y-6">
+                <div class="flex items-center gap-4">
+                    <button type="button" id="record1" class="record-btn bg-purple-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-purple-700 transition">Record #1</button>
+                    <span id="status1" class="text-lg font-medium text-gray-600">Not recorded</span>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Confirm Password *</label>
-                    <input type="password" name="admin_password2" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500" placeholder="Repeat password">
+                <div class="flex items-center gap-4">
+                    <button type="button" id="record2" class="record-btn bg-purple-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-purple-700 transition" disabled>Record #2</button>
+                    <span id="status2" class="text-lg font-medium text-gray-600">Not recorded</span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <button type="button" id="record3" class="record-btn bg-purple-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-purple-700 transition" disabled>Record #3</button>
+                    <span id="status3" class="text-lg font-medium text-gray-600">Not recorded</span>
                 </div>
             </div>
-            <p class="text-xs text-purple-700">This admin will use username + password to login</p>
-        </div>
 
-        <!-- Voiceprint Enrollment -->
-        <div class="bg-purple-50 p-6 rounded-lg border border-purple-200">
-            <h3 class="font-semibold text-purple-800 mb-3">Voiceprint Enrollment (Recommended)</h3>
-            <p class="text-sm text-gray-700 mb-4">Record the voice phrase <strong>3 times</strong> to train voice recognition.</p>
-            
-            <div class="space-y-3">
-                <div class="flex items-center gap-3">
-                    <button type="button" id="record1" class="record-btn bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
-                        Record #1
-                    </button>
-                    <span id="status1" class="text-sm text-gray-600">Not recorded</span>
-                </div>
-                <div class="flex items-center gap-3">
-                    <button type="button" id="record2" class="record-btn bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700" disabled>
-                        Record #2
-                    </button>
-                    <span id="status2" class="text-sm text-gray-600">Not recorded</span>
-                </div>
-                <div class="flex items-center gap-3">
-                    <button type="button" id="record3" class="record-btn bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700" disabled>
-                        Record #3
-                    </button>
-                    <span id="status3" class="text-sm text-gray-600">Not recorded</span>
-                </div>
+            <div class="mt-6 p-4 bg-purple-100 rounded-lg">
+                <p class="text-purple-800 font-medium">Speak clearly and consistently. Say the exact phrase each time.</p>
             </div>
-            <p class="text-xs text-purple-700 mt-3">Say the voice phrase clearly each time.</p>
         </div>
 
-        <!-- Submit -->
-        <div class="text-center">
-            <button type="submit" id="submitBtn" class="bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-3 px-8 rounded-full hover:shadow-lg transform hover:scale-105 transition duration-200" disabled>
-                Enroll User
+        <div class="text-center pt-6">
+            <button type="submit" id="submitBtn" disabled class="bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-xl px-16 py-5 rounded-full hover:shadow-2xl transform hover:scale-105 transition duration-300 opacity-50 cursor-not-allowed">
+                Enroll User → Voice Login Ready
             </button>
         </div>
     </form>
 
-    <!-- Hidden inputs + Recording Script -->
     <input type="hidden" name="voiceprint1" id="voiceprint1">
     <input type="hidden" name="voiceprint2" id="voiceprint2">
     <input type="hidden" name="voiceprint3" id="voiceprint3">
 
     <script>
-        // Show/hide admin password fields
-        const roleSelect = document.getElementById('role-select');
-        const passwordBox = document.getElementById('admin-password-box');
-
-        roleSelect.addEventListener('change', function() {
-            passwordBox.classList.toggle('hidden', this.value !== 'admin');
-        });
-
-        // Keep showing if form was submitted with admin selected
-        if (roleSelect.value === 'admin') {
-            passwordBox.classList.remove('hidden');
-        }
-
-        // Your existing recording script (unchanged)
         let recordings = 0;
-        const totalRecordings = 3;
-        const recordButtons = ['record1', 'record2', 'record3'].map(id => document.getElementById(id));
-        const statusSpans = ['status1', 'status2', 'status3'].map(id => document.getElementById(id));
-        const hiddenInputs = ['voiceprint1', 'voiceprint2', 'voiceprint3'].map(id => document.getElementById(id));
+        const recordButtons = document.querySelectorAll('.record-btn');
+        const statusSpans = [document.getElementById('status1'), document.getElementById('status2'), document.getElementById('status3')];
+        const hiddenInputs = [document.getElementById('voiceprint1'), document.getElementById('voiceprint2'), document.getElementById('voiceprint3')];
         let mediaRecorder;
 
         recordButtons.forEach((btn, index) => {
             btn.addEventListener('click', async () => {
-                if (mediaRecorder && mediaRecorder.state === 'recording') return;
+                if (mediaRecorder?.state === 'recording') return;
 
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -145,26 +116,29 @@
                         reader.onloadend = () => {
                             hiddenInputs[index].value = reader.result;
                             statusSpans[index].textContent = 'Recorded';
-                            statusSpans[index].className = 'text-sm text-green-600';
+                            statusSpans[index].className = 'text-lg font-bold text-green-600';
                             recordings++;
-                            
-                            if (recordings < totalRecordings) {
+
+                            if (recordings < 3) {
                                 recordButtons[recordings].disabled = false;
+                                recordButtons[recordings].classList.remove('opacity-50');
                             } else {
                                 document.getElementById('submitBtn').disabled = false;
+                                document.getElementById('submitBtn').classList.remove('opacity-50', 'cursor-not-allowed');
+                                document.getElementById('submitBtn').classList.add('hover:shadow-2xl');
                             }
                         };
                         reader.readAsDataURL(blob);
-                        stream.getTracks().forEach(track => track.stop());
+                        stream.getTracks().forEach(t => t.stop());
                     };
 
                     mediaRecorder.start();
                     btn.textContent = 'Recording...';
-                    btn.disabled = true;
-                    setTimeout(() => mediaRecorder.stop(), 3000);
+                    btn.classList.add('bg-red-600');
+                    setTimeout(() => mediaRecorder.stop(), 4000);
                 } catch (err) {
-                    statusSpans[index].textContent = 'Mic access denied';
-                    statusSpans[index].className = 'text-sm text-red-600';
+                    statusSpans[index].textContent = 'Mic denied';
+                    statusSpans[index].className = 'text-lg font-bold text-red-600';
                 }
             });
         });

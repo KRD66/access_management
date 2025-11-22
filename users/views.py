@@ -31,7 +31,7 @@ def voice_login(request):
 
         if not username or not voice_data:
             messages.error(request, 'Please enter username and record your voice.')
-            return render(request, 'access_system/templates/registration/login.html') 
+            return render(request, 'login.html')
 
         try:
             user = User.objects.get(username=username)
@@ -39,7 +39,7 @@ def voice_login(request):
 
             if not profile.eagle_speaker_id:
                 messages.error(request, 'No voiceprint enrolled for this user.')
-                return render(request, 'access_system/templates/registration/login.html')
+                return render(request, 'login.html')
 
             # Save voice temporarily
             format_part, b64data = voice_data.split(';base64,')
@@ -71,8 +71,7 @@ def voice_login(request):
             messages.error(request, 'User not found.')
         except Exception as e:
             messages.error(request, 'Login error. Please try again.')
-
-        return render(request, 'login.html')  # ← ALWAYS RENDER, NEVER REDIRECT
+        return render(request, 'login.html')
 
     # GET request → show login page
     return render(request, 'login.html')
