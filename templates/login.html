@@ -9,6 +9,17 @@
             <p class="text-xl text-gray-700">Voice Biometric Login</p>
         </div>
 
+        <!-- SUCCESS / ERROR MESSAGES -->
+        {% if messages %}
+            <div class="mb-6">
+                {% for message in messages %}
+                    <div class="p-4 rounded-lg text-center font-medium {% if message.tags == 'error' %}bg-red-100 text-red-700 border border-red-300{% else %}bg-green-100 text-green-700 border border-green-300{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
         <div class="bg-white rounded-2xl shadow-2xl p-10 border border-gray-100">
             <h2 class="text-3xl font-bold text-center text-gray-800 mb-8">Say Your Phrase</h2>
 
@@ -43,7 +54,7 @@
 </div>
 
 <script>
-let recorder, audioBlob;
+let recorder;
 const status = document.getElementById('status');
 const recordBtn = document.getElementById('record-btn');
 const voiceInput = document.getElementById('voice-data');
@@ -56,26 +67,28 @@ async function startRecording() {
 
         recorder.ondataavailable = e => chunks.push(e.data);
         recorder.onstop = () => {
-            audioBlob = new Blob(chunks, { type: 'audio/webm' });
+            const blob = new Blob(chunks, { type: 'audio/webm' });
             const reader = new FileReader();
             reader.onloadend = () => {
                 voiceInput.value = reader.result;
                 document.getElementById('voice-login-form').submit();
             };
-            reader.readAsDataURL(audioBlob);
+            reader.readAsDataURL(blob);
         };
 
         recorder.start();
         recordBtn.textContent = "Recording... Release to Login";
-        recordBtn.classList.add('bg-red-600');
-        status.textContent = "Recording... Speak your phrase now";
+        recordBtn.classList.replace('from-purple-600', 'from-red-600');
+        recordBtn.classList.replace('to-blue-600', 'to-red-700');
+        status.textContent = "Recording... Speak your phrase clearly";
         status.className = "mt-4 text-xl font-bold text-green-600";
     } catch (err) {
-        status.textContent = "Microphone access denied";
-        status.className = "mt-4 text-red-600";
+        status.textContent = "Microphone access denied or not available";
+        status.className = "mt-4 text-red-600 font-medium";
     }
 }
 
+// Mouse + Touch support
 recordBtn.addEventListener('mousedown', startRecording);
 recordBtn.addEventListener('touchstart', startRecording);
 recordBtn.addEventListener('mouseup', () => recorder?.stop());
