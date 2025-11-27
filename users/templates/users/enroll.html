@@ -3,10 +3,9 @@
 <div class="max-w-2xl mx-auto bg-white rounded-2xl shadow-xl p-10 mt-10">
     <h1 class="text-4xl font-bold text-center text-blue-700 mb-8">Enroll New User</h1>
 
-    <!-- Show access denied if not admin and admin already exists -->
     {% if not user.is_authenticated %}
         <div class="bg-red-100 border border-red-300 text-red-700 p-6 rounded-xl text-center mb-8">
-            <p class="text-xl font-bold">You must be logged in as admin to enroll users.</p>
+            <p class="text-xl font-bold">Login required</p>
             <a href="/users/login/" class="text-blue-600 underline mt-4 inline-block">Go to Voice Login</a>
         </div>
     {% elif not user.is_staff and user_exists %}
@@ -27,68 +26,66 @@
     <form method="post" class="space-y-8">
         {% csrf_token %}
 
-        <input type="text" name="username" required placeholder="Username *" class="w-full px-5 py-4 border-2 border-gray-300 rounded-xl text-lg focus:border-blue-500 focus:outline-none">
+        <input type="text" name="username" required placeholder="Username *" class="w-full px-5 py-4 border-2 border-gray-300 rounded-xl text-lg focus:border-blue-500">
 
-        <input type="text" name="voice_phrase" required placeholder="Voice Phrase * (e.g. open sesame, let me in)" class="w-full px-5 py-4 border-2 border-gray-300 rounded-xl text-lg focus:border-blue-500 focus:outline-none">
+        <input type="text" name="voice_phrase" required placeholder="Voice Phrase * (e.g. open sesame)" class="w-full px-5 py-4 border-2 border-gray-300 rounded-xl text-lg focus:border-blue-500">
 
-        <!-- Make Admin Checkbox -->
+        <!-- Admin Checkbox -->
         <div class="bg-amber-50 border-2 border-amber-300 rounded-xl p-6">
             <label class="flex items-center gap-4 cursor-pointer">
                 <input type="checkbox" name="make_admin" class="checkbox checkbox-lg checkbox-primary">
                 <span class="text-xl font-bold text-amber-900">Make this user an Administrator</span>
             </label>
             <p class="text-sm text-amber-700 mt-3">
-                {% if not user.is_staff %}
-                    Check this to become the first admin (required for first user)
-                {% else %}
-                    Only check for trusted people who should have full access
-                {% endif %}
+                {% if not user.is_staff %}Check to become the first admin{% else %}Only for trusted people{% endif %}
             </p>
         </div>
 
+        <!-- RECORD VOICE 2 TIMES ONLY -->
         <div class="bg-purple-50 p-8 rounded-xl border-2 border-purple-300">
-            <h3 class="text-2xl font-bold text-purple-800 mb-4">Record Voice 3 Times</h3>
-            <p class="text-gray-700 mb-6">Say your exact phrase clearly each time</p>
+            <h3 class="text-2xl font-bold text-purple-800 mb-4">Record Voice 2 Times</h3>
+            <p class="text-gray-700 mb-6">Say your phrase clearly both times</p>
 
-            <div class="space-y-6">
-                <div class="flex items-center gap-4">
-                    <button type="button" id="rec1" class="rec-btn bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-8 rounded-lg transition">Record #1</button>
-                    <span id="s1" class="text-lg font-medium text-gray-600">Not recorded</span>
+            <div class="space-y-8">
+                <div class="flex items-center gap-6">
+                    <button type="button" id="rec1" class="rec-btn bg-purple-600 hover:bg-purple-700 text-white font-bold py-5 px-10 rounded-xl text-xl transition shadow-lg">
+                        Record #1
+                    </button>
+                    <span id="s1" class="text-xl font-medium text-gray-600">Not recorded</span>
                 </div>
-                <div class="flex items-center gap-4">
-                    <button type="button" id="rec2" class="rec-btn bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-8 rounded-lg transition opacity-50" disabled>Record #2</button>
-                    <span id="s2" class="text-lg font-medium text-gray-600">Not recorded</span>
-                </div>
-                <div class="flex items-center gap-4">
-                    <button type="button" id="rec3" class="rec-btn bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-8 rounded-lg transition opacity-50" disabled>Record #3</button>
-                    <span id="s3" class="text-lg font-medium text-gray-600">Not recorded</span>
+
+                <div class="flex items-center gap-6">
+                    <button type="button" id="rec2" class="rec-btn bg-purple-600 hover:bg-purple-700 text-white font-bold py-5 px-10 rounded-xl text-xl transition shadow-lg opacity-50" disabled>
+                        Record #2
+                    </button>
+                    <span id="s2" class="text-xl font-medium text-gray-600">Not recorded</span>
                 </div>
             </div>
         </div>
 
-        <button type="submit" id="submit" disabled class="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-2xl py-6 rounded-full hover:scale-105 transition duration-300 opacity-60 cursor-not-allowed">
+        <button type="submit" id="submit" disabled class="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-2xl py-6 rounded-full opacity-60 cursor-not-allowed transition">
             Enroll User – Voice Login Ready
         </button>
     </form>
 
-    <!-- Hidden inputs for voice data -->
+    <!-- Hidden fields -->
     <input type="hidden" name="voiceprint1" id="voiceprint1">
     <input type="hidden" name="voiceprint2" id="voiceprint2">
-    <input type="hidden" name="voiceprint3" id="voiceprint3">
+    <!-- voiceprint3 removed forever -->
 
     <script>
         let count = 0;
-        const status = [document.getElementById('s1'), document.getElementById('s2'), document.getElementById('s3')];
-        const inputs = [document.getElementById('voiceprint1'), document.getElementById('voiceprint2'), document.getElementById('voiceprint3')];
+        const status = [document.getElementById('s1'), document.getElementById('s2')];
+        const inputs = [document.getElementById('voiceprint1'), document.getElementById('voiceprint2')];
         const submitBtn = document.getElementById('submit');
-    
+
         document.querySelectorAll('.rec-btn').forEach((btn, i) => {
             btn.addEventListener('click', async () => {
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({audio: true});
                     const recorder = new MediaRecorder(stream);
                     const chunks = [];
-    
+
                     recorder.ondataavailable = e => chunks.push(e.data);
                     recorder.onstop = () => {
                         const blob = new Blob(chunks, {type: 'audio/webm'});
@@ -96,39 +93,39 @@
                         reader.onload = () => {
                             inputs[i].value = reader.result;
                             status[i].textContent = "Done";
-                            status[i].className = "text-xl font-bold text-green-600";
+                            status[i].className = "text-2xl font-bold text-green-600";
                             count++;
-    
+
                             // Enable next button
-                            if (count < 2) {  // Now only 2 recordings needed
-                                document.querySelectorAll('.rec-btn')[count].disabled = false;
-                                document.querySelectorAll('.rec-btn')[count].classList.remove('opacity-50');
+                            if (count === 1) {
+                                document.getElementById('rec2').disabled = false;
+                                document.getElementById('rec2').classList.remove('opacity-50');
                             }
-    
+
                             // Enable submit after 2 recordings
-                            if (count >= 2) {
+                            if (count === 2) {
                                 submitBtn.disabled = false;
                                 submitBtn.classList.remove('opacity-60', 'cursor-not-allowed');
-                                submitBtn.classList.add('hover:shadow-2xl', 'cursor-pointer');
+                                submitBtn.classList.add('hover:shadow-2xl', 'cursor-pointer', 'hover:scale-105');
                             }
                         };
                         reader.readAsDataURL(blob);
                     };
-    
+
                     recorder.start();
                     btn.textContent = "Recording...";
                     btn.classList.replace('bg-purple-600', 'bg-red-600');
-    
+
                     setTimeout(() => {
                         recorder.stop();
                         stream.getTracks().forEach(t => t.stop());
                         btn.textContent = `Record #${i + 1}`;
                         btn.classList.replace('bg-red-600', 'bg-purple-600');
                     }, 4000);
-    
+
                 } catch (err) {
                     status[i].textContent = "Mic blocked!";
-                    status[i].className = "text-xl font-bold text-red-600";
+                    status[i].className = "text-2xl font-bold text-red-600";
                 }
             });
         });
