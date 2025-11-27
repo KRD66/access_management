@@ -68,9 +68,7 @@
                     <a href="{% url 'user_list' %}" class="block text-gray-700 hover:text-blue-600 font-medium py-2">Users</a>
                     <a href="{% url 'device_list' %}" class="block text-gray-700 hover:text-blue-600 font-medium py-2">Devices</a>
                     
-                    <a href="{% url 'voice_test' %}" class="block w-full text-center bg-purple-600 text-white py-3 rounded-full font-bold hover:bg-purple-700">
-                        Test Voice
-                    </a>
+                   
 
                     {% if user.is_staff %}
                         <a href="{% url 'enroll_user' %}" class="block w-full text-center bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-full font-bold">
