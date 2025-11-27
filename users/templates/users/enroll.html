@@ -78,17 +78,17 @@
 
     <script>
         let count = 0;
-        const btns = document.querySelectorAll('.rec-btn');
         const status = [document.getElementById('s1'), document.getElementById('s2'), document.getElementById('s3')];
         const inputs = [document.getElementById('voiceprint1'), document.getElementById('voiceprint2'), document.getElementById('voiceprint3')];
-
-        btns.forEach((btn, i) => {
-            btn.onclick = async () => {
+        const submitBtn = document.getElementById('submit');
+    
+        document.querySelectorAll('.rec-btn').forEach((btn, i) => {
+            btn.addEventListener('click', async () => {
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({audio: true});
                     const recorder = new MediaRecorder(stream);
                     const chunks = [];
-
+    
                     recorder.ondataavailable = e => chunks.push(e.data);
                     recorder.onstop = () => {
                         const blob = new Blob(chunks, {type: 'audio/webm'});
@@ -98,34 +98,39 @@
                             status[i].textContent = "Done";
                             status[i].className = "text-xl font-bold text-green-600";
                             count++;
-
-                            if (count < 3) {
-                                btns[count].disabled = false;
-                                btns[count].classList.remove('opacity-50');
-                            } else {
-                                document.getElementById('submit').disabled = false;
-                                document.getElementById('submit').classList.remove('opacity-60', 'cursor-not-allowed');
-                                document.getElementById('submit').classList.add('hover:shadow-2xl');
+    
+                            // Enable next button
+                            if (count < 2) {  // Now only 2 recordings needed
+                                document.querySelectorAll('.rec-btn')[count].disabled = false;
+                                document.querySelectorAll('.rec-btn')[count].classList.remove('opacity-50');
+                            }
+    
+                            // Enable submit after 2 recordings
+                            if (count >= 2) {
+                                submitBtn.disabled = false;
+                                submitBtn.classList.remove('opacity-60', 'cursor-not-allowed');
+                                submitBtn.classList.add('hover:shadow-2xl', 'cursor-pointer');
                             }
                         };
                         reader.readAsDataURL(blob);
-                        stream.getTracks().forEach(t => t.stop());
                     };
-
+    
                     recorder.start();
                     btn.textContent = "Recording...";
-                    btn.classList.add('bg-red-600');
+                    btn.classList.replace('bg-purple-600', 'bg-red-600');
+    
                     setTimeout(() => {
                         recorder.stop();
+                        stream.getTracks().forEach(t => t.stop());
                         btn.textContent = `Record #${i + 1}`;
-                        btn.classList.remove('bg-red-600');
+                        btn.classList.replace('bg-red-600', 'bg-purple-600');
                     }, 4000);
-
-                } catch (e) {
-                    status[i].textContent = "Mic blocked";
+    
+                } catch (err) {
+                    status[i].textContent = "Mic blocked!";
                     status[i].className = "text-xl font-bold text-red-600";
                 }
-            };
+            });
         });
     </script>
 
