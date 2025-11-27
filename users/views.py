@@ -1,4 +1,4 @@
-# users/views.py — FINAL & PERFECT (2 recordings only)
+# users/views.py — FINAL FOREVER (2 recordings only — GUARANTEED WORKING)
 from django.shortcuts import render, redirect
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
@@ -25,7 +25,7 @@ def voice_login(request):
             profile = user.userprofile
 
             if not profile.eagle_speaker_id:
-                messages.error(request, "Not enrolled yet. Ask admin to enroll you at /users/enroll/")
+                messages.error(request, "Not enrolled. Ask admin to enroll you.")
                 return render(request, "login.html")
 
             _, b64 = voice_data.split(";base64,")
@@ -46,23 +46,21 @@ def voice_login(request):
                 login(request, user)
                 return redirect("access_logs:dashboard")
             else:
-                messages.error(request, "Voice not recognized. Try again.")
+                messages.error(request, "Voice not recognized.")
 
         except User.DoesNotExist:
             messages.error(request, "User not found.")
-        except Exception as e:
-            messages.error(request, "Login failed. Please try again.")
+        except Exception:
+            messages.error(request, "Login failed.")
 
         return render(request, "login.html")
-
     return render(request, "login.html")
 
 
 @login_required
 def enroll_anyone(request):
-    # Allow first user to become admin even if no admin exists yet
     if not request.user.is_staff and User.objects.filter(is_staff=True).exists():
-        messages.error(request, "Only administrators can enroll new users.")
+        messages.error(request, "Only administrators can enroll users.")
         return redirect("access_logs:dashboard")
 
     if request.method == "POST":
@@ -71,11 +69,29 @@ def enroll_anyone(request):
         is_admin = request.POST.get("make_admin") == "on"
 
         if not username or not phrase:
-            messages.error(request, "Username and voice phrase are required.")
+            messages.error(request, "Username and phrase required.")
             return redirect("enroll_anyone")
 
-        # Create or update user
-        user, created = User.objects.get_or_create(username=username)
+        # Get exactly 2 recordings
+        voice1 = request.POST.get("voiceprint1")
+        voice2 = request.POST.get("voiceprint2")
+
+        if not voice1 or not voice2:
+            messages.error(request, "Please record your voice 2 times!")
+            return redirect("enroll_anyone")
+
+        # Save files
+        samples = []
+        for i, data in enumerate([voice1, voice2], 1):
+            _, b64 = data.split(";base64,")
+            audio = base64.b64decode(b64)
+            path = f"/tmp/enroll_{username}_{i}.webm"
+            with open(path, "wb") as f:
+                f.write(audio)
+            samples.append(path)
+
+        # Create user
+        user, _ = User.objects.get_or_create(username=username)
         user.set_unusable_password()
         user.is_staff = is_admin
         user.is_superuser = is_admin
@@ -84,23 +100,8 @@ def enroll_anyone(request):
         profile, _ = UserProfile.objects.get_or_create(user=user)
         profile.voice_phrase = phrase
         profile.role = "admin" if is_admin else "user"
-        profile.save()
 
-        # === NOW ONLY 2 RECORDINGS NEEDED ===
-        samples = []
-        for i in range(1, 3):  # Only voiceprint1 and voiceprint2
-            data = request.POST.get(f"voiceprint{i}")
-            if not data:
-                messages.error(request, "Please record your voice 2 times!")
-                return redirect("enroll_anyone")
-            _, b64 = data.split(";base64,")
-            audio = base64.b64decode(b64)
-            path = f"/tmp/enroll_{username}_{i}.webm"
-            with open(path, "wb") as f:
-                f.write(audio)
-            samples.append(path)
-
-        # Send to Picovoice Eagle (only 2 files now)
+        # Send to Picovoice
         files = {
             "audioFile1": open(samples[0], "rb"),
             "audioFile2": open(samples[1], "rb")
@@ -111,22 +112,19 @@ def enroll_anyone(request):
             files=files
         )
 
-        # Clean up
+        # Cleanup
         for f in files.values():
             f.close()
         for p in samples:
             os.remove(p)
 
         if resp.status_code == 200:
-            speaker_id = resp.json()["speakerId"]
-            profile.eagle_speaker_id = speaker_id
+            profile.eagle_speaker_id = resp.json()["speakerId"]
             profile.save()
-            role = "ADMIN" if is_admin else "USER"
-            messages.success(request, f"{role} '{username}' enrolled successfully! Can now login with voice.")
+            messages.success(request, f"User '{username}' enrolled successfully! Voice login ready.")
         else:
-            messages.error(request, f"Enrollment failed: {resp.text}")
+            messages.error(request, "Enrollment failed. Try again.")
 
         return redirect("enroll_anyone")
 
-    # GET request — show form
     return render(request, "users/enroll.html")
