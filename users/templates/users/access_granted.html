@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="min-h-screen bg-green-50 flex items-center justify-center">
+    <div class="bg-white rounded-3xl shadow-2xl p-20 text-center">
+        <div class="text-9xl mb-8">Checkmark</div>
+        <h1 class="text-6xl font-bold text-green-600 mb-4">ACCESS GRANTED</h1>
+        <p class="text-3xl text-gray-700">Welcome back, <strong>{{ user.get_full_name|default:user.username }}</strong></p>
+        <p class="text-2xl text-gray-600 mt-4">Time: {{ time }}</p>
+        <a href="/users/entry/" class="mt-12 inline-block bg-green-600 text-white px-12 py-6 rounded-full text-xl">
+            Done
+        </a>
+    </div>
+</div>
+{% endblock %}

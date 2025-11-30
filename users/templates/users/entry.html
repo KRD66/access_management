@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-4xl mx-auto text-center py-20">
+    <h1 class="text-5xl font-bold text-blue-700 mb-10">Voice Access Gate</h1>
+    <form method="post" class="bg-white rounded-2xl shadow-2xl p-10 inline-block">
+        {% csrf_token %}
+        <input type="text" name="username" placeholder="Enter your username" required 
+               class="w-96 px-6 py-4 text-xl border-2 rounded-xl mb-8">
+        <div class="bg-purple-100 p-8 rounded-xl">
+            <p class="text-2xl mb-6">Click and say your voice phrase</p>
+            <button type="button" onclick="startRecording()" 
+                    class="bg-purple-600 hover:bg-purple-700 text-white text-2xl px-12 py-8 rounded-full">
+                Hold to Speak
+            </button>
+            <input type="hidden" name="voice_data" id="voice_data">
+        </div>
+        <button type="submit" class="mt-8 bg-green-600 text-white px-12 py-5 rounded-full text-xl font-bold">
+            Submit Voice
+        </button>
+    </form>
+    {% include "messages.html" %}
+</div>
+
+<script>
+async function startRecording() {
+    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    const recorder = new MediaRecorder(stream);
+    const chunks = [];
+    recorder.ondataavailable = e => chunks.push(e.data);
+    recorder.onstop = () => {
+        const blob = new Blob(chunks, {type: 'audio/webm'});
+        const reader = new FileReader();
+        reader.onload = () => document.getElementById('voice_data').value = reader.result;
+        reader.readAsDataURL(blob);
+    };
+    recorder.start();
+    setTimeout(() => recorder.stop(), 4000);
+}
+</script>
+{% endblock %}
