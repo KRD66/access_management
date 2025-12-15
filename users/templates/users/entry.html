@@ -1,40 +1,81 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="max-w-4xl mx-auto text-center py-20">
-    <h1 class="text-5xl font-bold text-blue-700 mb-10">Voice Access Gate</h1>
-    <form method="post" class="bg-white rounded-2xl shadow-2xl p-10 inline-block">
-        {% csrf_token %}
-        <input type="text" name="username" placeholder="Enter your username" required 
-               class="w-96 px-6 py-4 text-xl border-2 rounded-xl mb-8">
-        <div class="bg-purple-100 p-8 rounded-xl">
-            <p class="text-2xl mb-6">Click and say your voice phrase</p>
-            <button type="button" onclick="startRecording()" 
-                    class="bg-purple-600 hover:bg-purple-700 text-white text-2xl px-12 py-8 rounded-full">
-                Hold to Speak
-            </button>
-            <input type="hidden" name="voice_data" id="voice_data">
+<div class="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center px-4">
+    <div class="max-w-2xl w-full">
+        <h1 class="text-5xl font-bold text-center text-blue-700 mb-12">Voice Access Gate</h1>
+
+        <!-- Messages — FIXED -->
+        {% if messages %}
+            <div class="mb-8 space-y-4">
+                {% for message in messages %}
+                    <div class="p-6 rounded-xl text-center text-2xl font-bold {% if message.tags == 'error' %}bg-red-100 text-red-700 border border-red-300{% else %}bg-green-100 text-green-700 border border-green-300{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <div class="bg-white rounded-3xl shadow-2xl p-12 text-center">
+            <form method="post" id="voice-form">
+                {% csrf_token %}
+                <div class="mb-10">
+                    <label class="block text-2xl font-medium text-gray-700 mb-4">Enter Your Username</label>
+                    <input type="text" name="username" required autofocus 
+                           class="w-full max-w-md mx-auto px-8 py-6 text-2xl border-2 border-gray-300 rounded-xl focus:border-blue-500 text-center">
+                </div>
+
+                <div class="bg-purple-50 p-10 rounded-2xl">
+                    <p class="text-2xl text-gray-800 mb-8">Click and say your voice phrase</p>
+                    <button type="button" id="record-btn" 
+                            class="bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold text-3xl px-16 py-12 rounded-full hover:scale-105 transition shadow-2xl">
+                        Hold to Speak
+                    </button>
+                    <p id="status" class="mt-6 text-xl text-gray-600">Ready when you are</p>
+                </div>
+
+                <input type="hidden" name="voice_data" id="voice_data">
+            </form>
         </div>
-        <button type="submit" class="mt-8 bg-green-600 text-white px-12 py-5 rounded-full text-xl font-bold">
-            Submit Voice
-        </button>
-    </form>
-    {% include "messages.html" %}
+    </div>
 </div>
 
 <script>
+let recorder;
+const recordBtn = document.getElementById('record-btn');
+const status = document.getElementById('status');
+const voiceInput = document.getElementById('voice_data');
+
+recordBtn.addEventListener('mousedown', startRecording);
+recordBtn.addEventListener('touchstart', startRecording);
+recordBtn.addEventListener('mouseup', () => recorder?.stop());
+recordBtn.addEventListener('touchend', () => recorder?.stop());
+
 async function startRecording() {
-    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
-    const recorder = new MediaRecorder(stream);
-    const chunks = [];
-    recorder.ondataavailable = e => chunks.push(e.data);
-    recorder.onstop = () => {
-        const blob = new Blob(chunks, {type: 'audio/webm'});
-        const reader = new FileReader();
-        reader.onload = () => document.getElementById('voice_data').value = reader.result;
-        reader.readAsDataURL(blob);
-    };
-    recorder.start();
-    setTimeout(() => recorder.stop(), 4000);
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        recorder = new MediaRecorder(stream);
+        const chunks = [];
+
+        recorder.ondataavailable = e => chunks.push(e.data);
+        recorder.onstop = () => {
+            const blob = new Blob(chunks, { type: 'audio/webm' });
+            const reader = new FileReader();
+            reader.onload = () => {
+                voiceInput.value = reader.result;
+                document.getElementById('voice-form').submit();
+            };
+            reader.readAsDataURL(blob);
+        };
+
+        recorder.start();
+        recordBtn.textContent = "Recording... Release to Submit";
+        recordBtn.classList.add('bg-red-600');
+        status.textContent = "Speak your phrase clearly now";
+        status.className = "mt-6 text-2xl font-bold text-green-600";
+    } catch (err) {
+        status.textContent = "Microphone access denied";
+        status.className = "mt-6 text-2xl font-bold text-red-600";
+    }
 }
 </script>
 {% endblock %}
